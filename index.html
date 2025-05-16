@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Noun Snatchers: Grammar Safari</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: start;
+      height: 700px;
+      overflow: hidden;
+    }
+    h1 {
+      margin-top: 10px;
+      font-size: 1.4em;
+      color: #3f51b5;
+    }
+    #instructions {
+      max-width: 95%;
+      margin: 5px;
+      background: #e0f7fa;
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 0.9em;
+      color: #333;
+    }
+    #gameArea {
+      max-width: 95%;
+      margin: 5px auto;
+      padding: 8px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    #controls {
+      margin-bottom: 8px;
+    }
+    #controls button, select, input[type="number"] {
+      margin: 2px;
+      padding: 6px 8px;
+      font-size: 0.9em;
+      border-radius: 8px;
+      border: none;
+      background: #3f51b5;
+      color: white;
+      cursor: pointer;
+    }
+    #nounPool {
+      position: relative;
+      height: 100px;
+      overflow: hidden;
+      background: #f0f0f0;
+      margin: 5px 0;
+    }
+    .nounCard {
+      position: absolute;
+      background: #ff9800;
+      color: white;
+      padding: 6px 10px;
+      border-radius: 8px;
+      white-space: nowrap;
+      cursor: grab;
+      user-select: none;
+      animation: scrollLeft 10s linear infinite;
+    }
+    @keyframes scrollLeft {
+      from { left: 100%; }
+      to { left: -200px; }
+    }
+    .dropZone {
+      border: 2px dashed #3f51b5;
+      padding: 8px;
+      margin: 5px;
+      min-height: 50px;
+      border-radius: 10px;
+      background: #e8f0fe;
+      flex: 1;
+      font-size: 0.9em;
+    }
+    #zones {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+    }
+    #feedback {
+      font-weight: bold;
+      font-size: 1em;
+      margin-top: 5px;
+    }
+    #countdown {
+      font-size: 0.9em;
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Noun Snatchers: Grammar Safari</h1>
+  <div id="instructions">
+    🎯 <strong>Goal:</strong> Grab the nouns as they scroll and drop them into the correct bucket.<br>
+    🧠 <strong>Categories:</strong> Common, Proper, Abstract, Collective, Compound, Singular, Plural.<br>
+    🕹️ <strong>Controls:</strong> Set options and press Start. Drag nouns into their correct type zone.<br>
+    🧮 <strong>Scoring:</strong> +1 for correct, -1 for wrong. Feedback provided for each move.<br>
+    ⏳ <strong>Time:</strong> Game ends when timer hits zero!
+  </div>
+  <div id="gameArea">
+    <div id="controls">
+      <label>Time (seconds): <input type="number" id="customTime" value="60" min="10" max="300"></label>
+      <select id="difficulty">
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+      <select id="speed">
+        <option value="slow">Slow</option>
+        <option value="medium">Medium</option>
+        <option value="fast">Fast</option>
+      </select>
+      <button onclick="startGame()">Start</button>
+      <button onclick="pauseGame()">Pause</button>
+      <button onclick="resumeGame()">Resume</button>
+      <button onclick="stopGame()">Stop</button>
+    </div>
+    <div id="countdown">Time: 60</div>
+    <div id="nounPool"></div>
+    <div id="zones">
+      <div class="dropZone" data-type="common" ondrop="drop(event)" ondragover="allowDrop(event)">Common</div>
+      <div class="dropZone" data-type="proper" ondrop="drop(event)" ondragover="allowDrop(event)">Proper</div>
+      <div class="dropZone" data-type="abstract" ondrop="drop(event)" ondragover="allowDrop(event)">Abstract</div>
+      <div class="dropZone" data-type="collective" ondrop="drop(event)" ondragover="allowDrop(event)">Collective</div>
+      <div class="dropZone" data-type="compound" ondrop="drop(event)" ondragover="allowDrop(event)">Compound</div>
+      <div class="dropZone" data-type="singular" ondrop="drop(event)" ondragover="allowDrop(event)">Singular</div>
+      <div class="dropZone" data-type="plural" ondrop="drop(event)" ondragover="allowDrop(event)">Plural</div>
+    </div>
+    <div id="feedback"></div>
+  </div>
+
+  <script>
+    const nouns = [
+      { word: "book", type: ["common", "singular"] },
+      { word: "cat", type: ["common", "singular"] },
+      { word: "desk", type: ["common", "singular"] },
+      { word: "phone", type: ["common", "singular"] },
+      { word: "strength", type: ["abstract"] },
+      { word: "joy", type: ["abstract"] },
+      { word: "dream", type: ["abstract"] },
+      { word: "New York", type: ["proper"] },
+      { word: "Amazon", type: ["proper"] },
+      { word: "family", type: ["collective"] },
+      { word: "team", type: ["collective"] },
+      { word: "ice cream", type: ["compound"] },
+      { word: "toothbrush", type: ["compound"] },
+      { word: "basketball", type: ["compound"] },
+      { word: "teacher", type: ["singular"] },
+      { word: "child", type: ["singular"] },
+      { word: "teachers", type: ["plural"] },
+      { word: "children", type: ["plural"] },
+      { word: "books", type: ["plural"] }
+    ];
+
+    let timer;
+    let timeLeft = 60;
+    let score = 0;
+
+    function startGame() {
+      score = 0;
+      timeLeft = parseInt(document.getElementById('customTime').value) || 60;
+      document.getElementById('feedback').textContent = "";
+      document.getElementById('countdown').textContent = `Time: ${timeLeft}`;
+      populateScrollingNouns();
+      timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById('countdown').textContent = `Time: ${timeLeft}`;
+        if (timeLeft <= 0) stopGame();
+      }, 1000);
+    }
+
+    function pauseGame() {
+      clearInterval(timer);
+    }
+
+    function resumeGame() {
+      timer = setInterval(() => {
+        timeLeft--;
+        document.getElementById('countdown').textContent = `Time: ${timeLeft}`;
+        if (timeLeft <= 0) stopGame();
+      }, 1000);
+    }
+
+    function stopGame() {
+      clearInterval(timer);
+      document.getElementById('nounPool').innerHTML = '';
+      document.getElementById('feedback').textContent = `Game Over! Final Score: ${score}`;
+    }
+
+    function populateScrollingNouns() {
+      const pool = document.getElementById('nounPool');
+      pool.innerHTML = '';
+      const shuffled = nouns.sort(() => 0.5 - Math.random());
+      shuffled.slice(0, 5).forEach((item, index) => {
+        const span = document.createElement('span');
+        span.textContent = item.word;
+        span.className = 'nounCard';
+        span.style.top = `${index * 20}px`;
+        span.style.animationDuration = `${6 + Math.random() * 2}s`;
+        span.setAttribute('draggable', 'true');
+        span.setAttribute('ondragstart', 'drag(event)');
+        span.setAttribute('data-type', item.type.join(','));
+        pool.appendChild(span);
+      });
+    }
+
+    function allowDrop(ev) {
+      ev.preventDefault();
+    }
+
+    function drag(ev) {
+      ev.dataTransfer.setData("text", ev.target.textContent);
+      ev.dataTransfer.setData("type", ev.target.getAttribute('data-type'));
+    }
+
+    function drop(ev) {
+      ev.preventDefault();
+      const targetType = ev.currentTarget.getAttribute('data-type');
+      const actualTypes = ev.dataTransfer.getData("type").split(',');
+      const word = ev.dataTransfer.getData("text");
+      if (actualTypes.includes(targetType)) {
+        score++;
+        document.getElementById('feedback').textContent = `✅ '${word}' snatched successfully!`;
+      } else {
+        score--;
+        document.getElementById('feedback').textContent = `❌ '${word}' ran to the wrong cage! Try again.`;
+      }
+      populateScrollingNouns();
+    }
+  </script>
+</body>
+</html>
